@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html class="no-js">
+
+<head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+	<title>SuaFoto</title>
+	<meta name="description" content="Aquisição da foto para o projeto de doutorado..." />
+	<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1, maximum-scale=1">
+	<meta name="mobile-web-app-capable" content="yes">
+	<link rel="stylesheet" href="" />
+	<style>
+		html,
+		body,
+		#main,
+		.wrap {
+			margin: 0;
+			padding: 0;
+		}
+
+		.wrap {
+			position: relative;
+			width: 100%;
+			max-width: 1024px;
+			margin: auto;
+			margin-top: 60px;
+			box-shadow: 10px 10px 5px #aaaaaa;
+		}
+
+		.circulo {
+			z-index: 25;
+			border: 1px solid #00ff00;
+			border-radius: 100px;
+			width: 80px;
+			height: 80px;
+			position: absolute;
+			top: 20%;
+			left: 50%;
+			transform: translate(-50%, 0%);
+		}
+
+		.meuVideo {
+			background: rgba(255, 255, 255, 0.5);
+			width: 100%;
+			margin-bottom: -5px;
+			-webkit-transform: scaleX(-1);
+			transform: scaleX(-1);
+			z-index: 10;
+			border: 2px solid #000;
+			border-radius: 10px;
+		}
+
+		#meuCanvas,
+		.fotoDoVideo {
+			width: 100%;
+		}
+
+		#tirarFoto {
+			width: 30%;
+			background: #f00;
+			color: #FFF;
+			font-size: 16pt;
+			border-radius: 20px;
+			border: none;
+			padding: 14px;
+			position: absolute;
+			bottom: 30px;
+			left: 50%;
+			transform: translate(-50%, 0%);
+			z-index: 35;
+		}
+
+
+		.flip {
+			width: 30px;
+			background-color: #fff;
+			border: 1px solid #000;
+			border-radius: 20px;
+			padding: 14px;
+			position: absolute;
+			top: 30px;
+			right: 10%;
+			transform: translate(10%, 0%);
+			z-index: 36;
+		}
+
+
+
+		/* // Extra small devices (portrait phones, less than 576px) */
+		@media (max-width: 575.98px) {
+			html, body, .wrap{
+				overflow: hidden;
+			}
+
+			.wrap {
+				margin-top: 0px;
+				box-shadow: none;
+			}
+
+			.circulo {
+				top: 30%;
+				border: 2px solid #00f;
+			}
+
+			.meuVideo {
+				margin-bottom: 0px;
+				border: none;
+				border-radius: 0px;
+			}
+
+			#tirarFoto {
+				width: 80%;
+			}
+
+		}
+	</style>
+</head>
+
+<body>
+
+	<div id="main" style="text-align:center;">
+
+		<div class="wrap">
+			<div class="circulo"></div>
+
+			<video class="meuVideo" style="display:inline;"></video>
+			<canvas id="meuCanvas" style="display: none"></canvas>
+			<img class="fotoDoVideo" style="display: none">
+
+			<button id="tirarFoto">Tirar Foto</button>
+			<img src="flip.svg" onclick="muda()" class="flip">
+
+		</div>
+
+	</div>
+
+	<script async src="/js/openCV.js" onload="onOpenCvReady();" type="text/javascript"></script>
+	<script>
+		// Buscando os itens presentes na interface...		
+		const wrap = document.querySelector('.wrap');
+		const circulo = document.querySelector('.circulo');
+
+		const video = document.querySelector('.meuVideo');
+		// As opções abaixo são necessárias para o funcionamento correto no iOS...
+		video.setAttribute('autoplay', true);
+		video.setAttribute('muted', true);
+		video.setAttribute('playsinline', true);
+
+		const canvas = document.querySelector('#meuCanvas');
+		const img = document.querySelector('.fotoDoVideo');
+		const BTN_tirarFoto = document.querySelector('#tirarFoto');
+		const BTN_inverterCamera = document.querySelector('.flip');
+
+		let fotoAtiva = true;
+
+
+
+		// Para trocar a camera no telefone...
+		var front = true;
+
+		function muda() {
+			front = !front;
+			navigator.mediaDevices.getUserMedia({
+					audio: false,
+					video: {
+						width: {
+							min: 1280
+						},
+						height: {
+							min: 720
+						},
+						facingMode: front ? "user" : "environment"
+					}
+				})
+				.then(function (stream) {
+					//Definir o elemento vídeo a carregar o capturado pela webcam
+					video.srcObject = stream;
+				})
+				.catch(function (error) {
+					alert("Oooopps... Falhou :'(");
+				});
+		}
+
+
+
+
+		// Verifica se é possível abrir a camera...
+		if (navigator.mediaDevices.getUserMedia()) {
+			navigator.mediaDevices.getUserMedia({
+					audio: false,
+					video: {
+						width: {
+							min: 1280
+						},
+						height: {
+							min: 720
+						},
+						facingMode: front ? "user" : "environment"
+					}
+				})
+				.then(function (stream) {
+					//Definir o elemento vídeo a carregar o capturado pela webcam
+					video.srcObject = stream;
+				})
+				.catch(function (error) {
+					alert("Oooopps... Falhou :'(");
+				});
+		}
+
+
+		// Ação para tirar a foto...
+		// Tirei o click no video: BTN_tirarFoto.onclick = video.onclick
+		BTN_tirarFoto.onclick = function () {
+			canvas.width = video.videoWidth;
+			canvas.height = video.videoHeight;
+
+			let ctx = canvas.getContext('2d');
+			ctx.translate(video.videoWidth, 0);
+			ctx.scale(-1, 1);
+
+			ctx.drawImage(video, 0, 0);
+
+			// Desenho um círculo na foto... 
+			// Vou precisar desenhar na foto ou só da posição do círculo do CSS????
+			var posicaoDoCirculo = circulo.getBoundingClientRect();
+
+			let bacaW = (posicaoDoCirculo.x + posicaoDoCirculo.width / 2) * canvas.width / wrap.clientWidth;
+			let bacaH = (posicaoDoCirculo.y + posicaoDoCirculo.height / 2) * canvas.height / wrap.clientHeight;
+
+
+			img.src = canvas.toDataURL('image/jpeg');
+
+			if (fotoAtiva) {
+				fotoAtiva = false;
+				// circulo.style.display = "none";
+				video.style.display = "none";
+				img.style.display = "inline";
+
+				BTN_tirarFoto.textContent = "Voltar para câmera";
+				BTN_inverterCamera.style.display = "none";
+			} else {
+				fotoAtiva = true;
+				// circulo.style.display = "inline";
+				video.style.display = "inline";
+				img.style.display = "none";
+
+				BTN_tirarFoto.textContent = "Tirar Foto";
+				BTN_inverterCamera.style.display = "inline";
+			}
+		};
+	</script>
+</body>
+
+</html>
